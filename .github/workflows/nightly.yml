@@ -1,41 +1,51 @@
-name: Nightly
-
-on:
-  push:
-    branches:
-      - master
-
 jobs:
   build:
     if: contains(github.event.head_commit.message, '[NOBUILD]') == false
-    runs-on: windows-latest
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v1
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-      - uses: actions/cache@v1
-        with:
-          path: ~/.mvnJlinkCache
-          key: ${{ runner.os }}-mvnJlinkCache-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-mvnJlinkCache-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v2
-        with:
-          distribution: liberica
-          java-version: 21
-          architecture: x64
-      - name: maven-settings-xml-action
-        uses: whelk-io/maven-settings-xml-action@v4
-        with:
-          servers: '[{ "id": "github", "privateKey": "${{ secrets.DEPLOYMENT_KEY }}", "username": "${{ github.actor }}", "password": "${{ secrets.GITHUB_TOKEN }}" }]'
-      - name: Maven stats
-        run: ./mvnw.cmd -version
-      - name: Package
-        run: ./mvnw.cmd -B package -DexcludedGroups=ui
-      - name: Deploy to nightly
-        run: ./mvnw.cmd --% -B de.jutzig:github-release-plugin:release@deploy-nightly -pl milkman-dist
+    - continue-on-error: true
+      uses: actions/checkout@v2
+    - continue-on-error: true
+      uses: actions/cache@v1
+      with:
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2/repository
+        restore-keys: '${{ runner.os }}-maven-
+
+          '
+    - continue-on-error: true
+      uses: actions/cache@v1
+      with:
+        key: ${{ runner.os }}-mvnJlinkCache-${{ hashFiles('**/pom.xml') }}
+        path: ~/.mvnJlinkCache
+        restore-keys: '${{ runner.os }}-mvnJlinkCache-
+
+          '
+    - continue-on-error: true
+      name: Set up JDK 21
+      uses: actions/setup-java@v2
+      with:
+        architecture: x64
+        distribution: liberica
+        java-version: 21
+    - continue-on-error: true
+      name: maven-settings-xml-action
+      uses: whelk-io/maven-settings-xml-action@v4
+      with:
+        servers: '[{ "id": "github", "privateKey": "${{ secrets.DEPLOYMENT_KEY }}",
+          "username": "${{ github.actor }}", "password": "${{ secrets.GITHUB_TOKEN
+          }}" }]'
+    - continue-on-error: true
+      name: Maven stats
+      run: ./mvnw.cmd -version
+    - continue-on-error: true
+      name: Package
+      run: ./mvnw.cmd -B package -DexcludedGroups=ui
+    - continue-on-error: true
+      name: Deploy to nightly
+      run: ./mvnw.cmd --% -B de.jutzig:github-release-plugin:release@deploy-nightly
+        -pl milkman-dist
+name: Nightly
+on:
+  repository_dispatch:
+    types: trigger-ga___nightly.yml
